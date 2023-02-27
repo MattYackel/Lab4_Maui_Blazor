@@ -1,0 +1,58 @@
+﻿@page "/todo"
+@using Lab4_Maui_Blazor.Data
+@using Microsoft.Maui.Storage
+@using System.IO
+@using System.Text.Json
+
+<h3>Todo</h3>
+
+<button @onclick="Save">Save</button>
+<button @onclick="Load">Load</button>
+
+<ul class="list-unstyled">
+    @foreach (var todo in todos)
+    {
+        <li>
+            <input type="checkbox" @bind="todo.IsDone" />
+            <input @bind="todo.Title" />
+        </li>
+    }
+</ul>
+
+<input placeholder="Something todo" @bind="newTodo" />
+<button @onclick="AddTodo">Add todo</button>
+
+@code {
+    private List<TodoItem> todos = new();
+    private string? newTodo;
+
+    private void AddTodo()
+    {
+        if (!string.IsNullOrWhiteSpace(newTodo))
+        {
+            todos.Add(new TodoItem { Title = newTodo });
+            newTodo = string.Empty;
+        }
+    }
+
+    //Serialize the data into a string, create the path for the file, and write the contents to the file.
+    private async Task Save() 
+    {
+        var contents = JsonSerializer.Serialize(todos);
+        var path = Path.Combine(FileSystem.AppDataDirectory, "todo.json"); //combine 2 strings together
+        File.WriteAllText(path, contents);
+        await App.Current.MainPage.DisplayAlert("List Saved", $"List has been saved to {path}", "OK"); //display alert when file is saved
+    }
+
+    //load the data from disk, deserializing the data, and loading items into the todo list.
+    private void Load()
+    {
+        var path = Path.Combine(FileSystem.AppDataDirectory, "todo.json");
+        if (!File.Exists(path)) //if the path doesnt exist, go back (restart load())
+            return;
+        var contents = File.ReadAllText(path);
+        var savedItems = JsonSerializer.Deserialize<List<TodoItem>>(contents);
+        todos.Clear();
+        todos.AddRange(savedItems); //add items to the end of the list
+    }
+}
